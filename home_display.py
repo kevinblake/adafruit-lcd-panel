@@ -5,6 +5,7 @@ import argparse, urllib2, time, json
 import xml.dom.minidom as xDom
 from Adafruit_I2C import Adafruit_I2C
 from time import sleep
+import datetime
 
 # Python library for Adafruit RGB-backlit LCD plate for Raspberry Pi.
 # Written by Adafruit Industries.  MIT license.
@@ -20,22 +21,50 @@ if __name__ == '__main__':
     lcd.begin(16, 2)
     lcd.clear()
 
+    btn = ((lcd.SELECT, 'Select', lcd.ON),
+           (lcd.LEFT  , 'Left'  , lcd.RED),
+           (lcd.UP    , 'Up'    , lcd.BLUE),
+           (lcd.DOWN  , 'Down'  , lcd.GREEN),
+           (lcd.RIGHT , 'Right' , lcd.VIOLET))
+
+    prev=1
 #    for i in range(16, len(msg)):
 #        sleep(0.25)
 #        lcd.scrollDisplayLeft()
     while True:
         try:
-            api = urllib2.urlopen("http://mybus.kb.tl/BusTimes/Json")
 
-            data = json.load(api)
+            for b in btn:
+                if lcd.buttonPressed(b[0]):
+                    if b is not prev:
+                        print b[1]
+                        lcd.clear()
+                        lcd.message(b[1])
+                        lcd.backlight(b[2])
+                        prev = b
+                    break
 
-            arr1 = data['Locations'][0]['Arrivals'][0]
-            arr2 = data['Locations'][0]['Arrivals'][1]
 
-            message = arr1["RouteName"] + " " + arr1["WaitTime"] + ": " + arr1["ScheduledTime"] +  "\n" + arr2["RouteName"] + " " + arr2["WaitTime"] + ": " + arr2["ScheduledTime"]
-            lcd.clear()
-            lcd.message(message)
-            sleep(30)
+            startTime = datetime.time(7,30,0,0)
+            currentTime = datetime.datetime.now().time()
+            endTime = datetime.time(9,15,0,0)
+
+            if currentTime > startTime and currentTime < endTime:
+                api = urllib2.urlopen("http://mybus.kb.tl/BusTimes/Json")
+
+                data = json.load(api)
+
+                arr1 = data['Locations'][0]['Arrivals'][0]
+                arr2 = data['Locations'][0]['Arrivals'][1]
+
+                message = arr1["RouteName"] + " " + arr1["WaitTime"] + ": " + arr1["ScheduledTime"] +  "\n" + arr2["RouteName"] + " " + arr2["WaitTime"] + ": " + arr2["ScheduledTime"]
+                lcd.clear()
+                lcd.message(message)
+                sleep(30)
+            else:
+                lcd.clear()
+                lcd.message(currentTime.strftime('%H:%M'))
+                sleep(30)
         except Exception as inst:
             print "broken:"
             print inst
